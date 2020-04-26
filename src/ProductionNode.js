@@ -1,0 +1,182 @@
+import React from 'react'
+import {
+  DefaultPortModel,
+  DefaultLinkModel,
+  NodeModel,
+} from '@projectstorm/react-diagrams'
+import { AbstractReactFactory } from '@projectstorm/react-canvas-core'
+import ProductionNodeWidget from './ProductionNodeWidget'
+
+export class ProductionLinkModel extends DefaultLinkModel {
+  setTargetPort(port) {
+    super.setTargetPort(port)
+    this.matchUpPorts(this.sourcePort, port)
+  }
+
+  setSourcePort(port) {
+    super.setSourcePort(port)
+    this.matchUpPorts(this.sourcePort, port)
+  }
+
+  matchUpPorts(a, b) {
+    if (a && b) {
+      if (a.icon) {
+        b.icon = a.icon
+      } else if (b.icon) {
+        a.icon = b.icon
+      }
+    }
+  }
+}
+
+export class ProductionPortModel extends DefaultPortModel {
+  canLinkToPort(port) {
+    if (super.canLinkToPort(port)) {
+      if (this.icon && port.icon) {
+        return this.icon === port.icon
+      }
+      return true
+    }
+  }
+
+  get icon() {
+    return this.options.icon
+  }
+
+  set icon(x) {
+    this.options.icon = x
+  }
+
+  createLinkModel(factory) {
+    return new ProductionLinkModel()
+  }
+}
+
+export class ProductionNodeFactory extends AbstractReactFactory {
+  constructor() {
+    super('production-node')
+  }
+
+  generateModel(event) {
+    return new ProductionNode()
+  }
+
+  generateReactWidget(event) {
+    return <ProductionNodeWidget engine={this.engine} node={event.model} />
+  }
+}
+
+export class ProductionNode extends NodeModel {
+  constructor(options = {}) {
+    super({
+      ...options,
+      type: 'production-node',
+    })
+  }
+
+  get id() {
+    return this.options.id
+  }
+  get name() {
+    return this.options.name
+  }
+  get duration() {
+    return this.options.duration
+  }
+  get craftingSpeed() {
+    return this.options.craftingSpeed
+  }
+  get productivityBonus() {
+    return this.options.productivityBonus
+  }
+  get targetRate() {
+    return this.options.targetRate
+  }
+  get targetRateUnits() {
+    return this.options.targetRateUnits
+  }
+  get targetRateInSeconds() {
+    if (!this.options.targetRate) {
+      return null
+    }
+
+    const multiplier = {
+      s: 1,
+      m: 1 / 60.0,
+      h: 1 / 60.0 / 60.0,
+    }[this.targetRateUnits]
+
+    if (!multiplier) {
+      throw new Error(`Unknown target rate unit: ${this.targetRateUnits}`)
+    }
+    return this.targetRate * multiplier
+  }
+
+  get inputPorts() {
+    return Object.values(this.ports).filter((p) => p.options.in)
+  }
+  get outputPorts() {
+    return Object.values(this.ports).filter((p) => !p.options.in)
+  }
+
+  update(values) {
+    this.options = {
+      ...this.options,
+      ...values,
+    }
+  }
+
+  addOutput() {
+    const portName = 'out-' + (this.outputPorts.length + 1)
+    this.addPort(
+      new ProductionPortModel({
+        in: false,
+        name: portName,
+        icon: null,
+        count: 1,
+      })
+    )
+    return portName
+  }
+
+  addInput() {
+    const portName = 'in-' + (this.inputPorts.length + 1)
+    this.addPort(
+      new ProductionPortModel({
+        in: true,
+        name: portName,
+        icon: null,
+        count: 1,
+      })
+    )
+    return portName
+  }
+
+  get assemblersRequired() {
+    const { calculatedRate } = this.options
+
+    if (!calculatedRate) return null
+
+    // Copied from Foreman, machines have to wait for a new tick before
+    // starting a new item, so round up to nearest tick (assume 60fps). Return
+    // fractional assemblers even though not possible in reality in order to
+    // help user adjust and tweak.
+    return (
+      Math.ceil((this.duration / this.craftingSpeed) * calculatedRate * 60) / 60
+    )
+  }
+
+  set calculatedRate(x) {
+    this.options.calculatedRate = x
+  }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+    }
+  }
+
+  deserialize(ob, engine) {
+    super.deserialize(ob, engine)
+  }
+}
