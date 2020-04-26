@@ -1,6 +1,6 @@
 # Factorio Layout Designer
 
-![doc/fld-screenshot.png](Screenshot)
+![https://raw.githubusercontent.com/xaviershay/factorio-layout-designer/master/doc/fld-screenshot.png](Screenshot)
 
 This project is basically a port of Foreman to the web. It uses the same
 `or-tools` solver via a webservice (`or-tools-lambda` directory). Unlike
