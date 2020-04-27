@@ -15,3 +15,5 @@ It's still very much a WIP and isn't deployed anywhere.
 Before commiting, format files:
 
     yarn fmt
+
+A test/development version is available at https://factorio-layout-designer.web.app/
