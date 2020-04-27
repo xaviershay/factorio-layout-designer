@@ -8,6 +8,7 @@ import { ModalProvider } from 'react-modal-hook'
 import ReactModal from 'react-modal'
 import DiagramState from './DiagramState'
 import ProductionSolver from './ProductionSolver'
+import { useModal } from 'react-modal-hook'
 import {StyledFirebaseAuth} from 'react-firebaseui'
 import * as firebase from 'firebase/app'
 import 'firebase/analytics'
@@ -178,7 +179,26 @@ const nodeHeight = 120
 
 const App = () => {
   const [user, setUser] = useState(null);
-  useEffect(() => firebase.auth().onAuthStateChanged(setUser), [])
+
+  const [showLoginModal, hideLoginModal] = useModal(() =>
+    <ReactModal
+      isOpen
+      className="login-modal"
+      overlayClassName="login-modal-overlay"
+      onRequestClose={hideLoginModal}
+    >
+      <p>Signing in allows you to save and share your designs.</p>
+      <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />
+    </ReactModal>
+  )
+
+  useEffect(() => firebase.auth().onAuthStateChanged(user => {
+    setUser(user)
+
+    if (user) {
+      hideLoginModal()
+    }
+  }), [])
 
   const handleSerialize = () => {
     console.log(engine.getModel().serialize())
@@ -248,7 +268,7 @@ const App = () => {
       <div>
         <button onClick={handleSerialize}>Serialize</button>
         <button onClick={handleSolve}>Solve</button>
-        {user == null && <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />}
+        {user == null && <button onClick={showLoginModal}>Sign in</button>}
         {user != null && <div style={{display: 'inline'}}>{user.email} <button onClick={() => firebase.auth().signOut()}>Sign out</button></div>}
       </div>
       <div className="body">
