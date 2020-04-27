@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import * as ReactDOM from 'react-dom'
 import './index.css'
 import createEngine, { DiagramModel } from '@projectstorm/react-diagrams'
@@ -8,8 +8,38 @@ import { ModalProvider } from 'react-modal-hook'
 import ReactModal from 'react-modal'
 import DiagramState from './DiagramState'
 import ProductionSolver from './ProductionSolver'
+import {StyledFirebaseAuth} from 'react-firebaseui'
+import * as firebase from 'firebase/app'
+import 'firebase/analytics'
+import 'firebase/auth'
 
 import { ProductionPortModel, ProductionLinkModel } from './ProductionNode'
+
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyA-WiHZQzT7L8oakrYwdRTxm3csUHHQqKA",
+  authDomain: "factorio-layout-designer.firebaseapp.com",
+  databaseURL: "https://factorio-layout-designer.firebaseio.com",
+  projectId: "factorio-layout-designer",
+  storageBucket: "factorio-layout-designer.appspot.com",
+  messagingSenderId: "406123075299",
+  appId: "1:406123075299:web:c5883d39e9a5c5959497d6",
+  measurementId: "G-VDN3RD8RT5"
+};
+firebase.initializeApp(firebaseConfig);
+firebase.analytics();
+
+// Configure FirebaseUI.
+const uiConfig = {
+  signInFlow: 'popup',
+  signInOptions: [
+    firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+  ],
+  callbacks: {
+    // Avoid redirects after sign-in.
+    signInSuccessWithAuthResult: () => false
+  }
+};
 
 const engine = createEngine()
 engine.maxNumberPointsPerLink = 0
@@ -147,6 +177,9 @@ const nodeWidth = 180
 const nodeHeight = 120
 
 const App = () => {
+  const [user, setUser] = useState(null);
+  useEffect(() => firebase.auth().onAuthStateChanged(setUser), [])
+
   const handleSerialize = () => {
     console.log(engine.getModel().serialize())
   }
@@ -215,6 +248,8 @@ const App = () => {
       <div>
         <button onClick={handleSerialize}>Serialize</button>
         <button onClick={handleSolve}>Solve</button>
+        {user == null && <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />}
+        {user != null && <div style={{display: 'inline'}}>{user.email} <button onClick={() => firebase.auth().signOut()}>Sign out</button></div>}
       </div>
       <div className="body">
         <div className="tray">
