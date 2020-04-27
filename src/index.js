@@ -3,7 +3,7 @@ import * as ReactDOM from 'react-dom'
 import './index.css'
 import createEngine, { DiagramModel } from '@projectstorm/react-diagrams'
 import { CanvasWidget } from '@projectstorm/react-canvas-core'
-import { ProductionNode, ProductionNodeFactory } from './ProductionNode'
+import { ProductionNode, ProductionNodeFactory, ProductionPortFactory } from './ProductionNode'
 import { ModalProvider } from 'react-modal-hook'
 import ReactModal from 'react-modal'
 import DiagramState from './DiagramState'
@@ -12,6 +12,7 @@ import { useModal } from 'react-modal-hook'
 import {StyledFirebaseAuth} from 'react-firebaseui'
 import * as firebase from 'firebase/app'
 import 'firebase/analytics'
+import 'firebase/storage'
 import 'firebase/auth'
 
 import { ProductionPortModel, ProductionLinkModel } from './ProductionNode'
@@ -49,6 +50,7 @@ engine.maxNumberPointsPerLink = 0
 // click.
 engine.getStateMachine().pushState(new DiagramState())
 engine.getNodeFactories().registerFactory(new ProductionNodeFactory())
+engine.getPortFactories().registerFactory(new ProductionPortFactory())
 
 // create a diagram model
 const model = new DiagramModel()
@@ -198,10 +200,32 @@ const App = () => {
     if (user) {
       hideLoginModal()
     }
-  }), [])
+  }), [hideLoginModal])
 
-  const handleSerialize = () => {
-    console.log(engine.getModel().serialize())
+  const handleSerialize = async () => {
+    if (user == null) {
+      return
+    }
+    const ref = firebase.storage().ref().child('layouts').child(user.uid).child('current.json')
+    const data = JSON.stringify(engine.getModel().serialize())
+    await ref.putString(data)
+    console.log("saved")
+  }
+
+  const handleLoad = async () => {
+    if (user == null) {
+      return
+    }
+    const ref = firebase.storage().ref().child('layouts').child(user.uid).child('current.json')
+    const url = await ref.getDownloadURL()
+
+    const response = await fetch(url)
+    const data = await response.json()
+
+    let newModel = new DiagramModel();
+    newModel.deserializeModel(data, engine);
+    engine.setModel(newModel);
+    console.log('loaded')
   }
 
   const handleSolve = async () => {
@@ -247,9 +271,6 @@ const App = () => {
         const v = solver.linkVar(link, 'INPUT')
         link.labels.length = 0
         link.addLabel(Math.round(solution[v.name] * 1000) / 1000 + '/s')
-
-        // TODO: This might not work with serialize. See
-        // https://github.com/projectstorm/react-diagrams/issues/497
       })
 
       nodes.forEach((node) => {
@@ -266,7 +287,8 @@ const App = () => {
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <div>
-        <button onClick={handleSerialize}>Serialize</button>
+        <button onClick={handleSerialize}>Save</button>
+        <button onClick={handleLoad}>Load</button>
         <button onClick={handleSolve}>Solve</button>
         {user == null && <button onClick={showLoginModal}>Sign in</button>}
         {user != null && <div style={{display: 'inline'}}>{user.email} <button onClick={() => firebase.auth().signOut()}>Sign out</button></div>}

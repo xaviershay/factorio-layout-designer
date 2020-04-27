@@ -2,7 +2,7 @@ import React from 'react'
 import {
   DefaultPortModel,
   DefaultLinkModel,
-  NodeModel,
+  DefaultNodeModel,
 } from '@projectstorm/react-diagrams'
 import { AbstractReactFactory } from '@projectstorm/react-canvas-core'
 import ProductionNodeWidget from './ProductionNodeWidget'
@@ -30,6 +30,13 @@ export class ProductionLinkModel extends DefaultLinkModel {
 }
 
 export class ProductionPortModel extends DefaultPortModel {
+  constructor(options = {}) {
+    super({
+      ...options,
+      type: 'production-port',
+    })
+  }
+
   canLinkToPort(port) {
     if (super.canLinkToPort(port)) {
       if (this.icon && port.icon) {
@@ -50,6 +57,18 @@ export class ProductionPortModel extends DefaultPortModel {
   createLinkModel(factory) {
     return new ProductionLinkModel()
   }
+
+  serialize() {
+    return {
+      ...super.serialize(),
+      options: this.options,
+    }
+  }
+
+  deserialize(ob, engine) {
+    super.deserialize(ob, engine)
+    this.options = ob.data.options
+  }
 }
 
 export class ProductionNodeFactory extends AbstractReactFactory {
@@ -66,7 +85,23 @@ export class ProductionNodeFactory extends AbstractReactFactory {
   }
 }
 
-export class ProductionNode extends NodeModel {
+export class ProductionPortFactory extends AbstractReactFactory {
+  constructor() {
+    super('production-port')
+  }
+
+  generateModel(event) {
+    return new ProductionPortModel()
+  }
+
+  /*
+  generateReactWidget(event) {
+    return <ProductionNodeWidget engine={this.engine} node={event.model} />
+  }
+  */
+}
+
+export class ProductionNode extends DefaultNodeModel {
   constructor(options = {}) {
     super({
       ...options,
@@ -173,10 +208,12 @@ export class ProductionNode extends NodeModel {
   serialize() {
     return {
       ...super.serialize(),
+      options: this.options,
     }
   }
 
   deserialize(ob, engine) {
     super.deserialize(ob, engine)
+    this.options = ob.data.options
   }
 }
