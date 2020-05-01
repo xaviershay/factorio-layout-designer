@@ -1,65 +1,76 @@
 // @flow
 
-import React, { useState, useEffect, useCallback } from 'react'
-import uniqBy from 'lodash/uniqBy'
-import PortIcon from './PortIcon'
-import UIIcon from './UIIcon'
-import _ from 'lodash'
-import { type ProductionNode, type ProductionPortModel, type ProductionLinkModel } from './ProductionNode'
+import React, { useState, useEffect, useCallback } from "react";
+import uniqBy from "lodash/uniqBy";
+import PortIcon from "./PortIcon";
+import UIIcon from "./UIIcon";
+import _ from "lodash";
+import {
+  type ProductionNode,
+  type ProductionPortModel,
+  type ProductionLinkModel,
+} from "./ProductionNode";
 
-const ProductionNodeWidget = ({ engine, node } : { engine: any, node: ProductionNode}) => {
+const ProductionNodeWidget = ({
+  engine,
+  node,
+}: {
+  engine: any,
+  node: ProductionNode,
+}) => {
   // STATE
 
-  const [editable, setEditable] = useState(null)
+  const [editable, setEditable] = useState(null);
 
   // A click event is sent to our elements after a drag action completes, but
   // we only want to handle them when no drag happened. This state allows up to
   // track that.
-  const [moved, setMoved] = useState(false)
+  const [moved, setMoved] = useState(false);
 
-  let defaultPortValues = {}
-  _.values(node.ports).forEach((port : ProductionPortModel) => {
-    defaultPortValues[port.options.label] = port.options.count
-  })
+  let defaultPortValues = {};
+  _.values(node.ports).forEach((port: ProductionPortModel) => {
+    defaultPortValues[port.options.label] = port.options.count;
+  });
   const [editableValues, setEditableValues] = useState({
     name: node.name,
     duration: node.duration,
     craftingSpeed: node.craftingSpeed,
     productivityBonus: node.productivityBonus,
-    targetRate: node.targetRate || '',
-    targetRateUnits: node.targetRateUnits || 's',
+    targetRate: node.targetRate || "",
+    targetRateUnits: node.targetRateUnits || "s",
     ports: defaultPortValues,
-  })
+  });
 
-  const forceUpdate = React.useReducer(() => ({}))[1]
+  const forceUpdate = React.useReducer(() => ({}))[1];
 
   // EVENT HANDLERS
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setEditableValues({ ...editableValues, [name]: value })
-  }
+    const { name, value } = e.target;
+    setEditableValues({ ...editableValues, [name]: value });
+  };
 
   const handlePortInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setEditableValues({
       ...editableValues,
       ports: { ...editableValues.ports, [name]: value },
-    })
-  }
+    });
+  };
 
   const handleAddPort = (type) => (e) => {
-    const portName : string = type === 'INPUT' ? node.addInput() : node.addOutput()
+    const portName: string =
+      type === "INPUT" ? node.addInput() : node.addOutput();
     setEditableValues({
       ...editableValues,
       ports: { ...editableValues.ports, [portName]: 1 },
-    })
-    forceUpdate()
-  }
+    });
+    forceUpdate();
+  };
 
   const parseNumericInput = (x) => {
-    const parsed = parseFloat(x)
-    return isNaN(parsed) ? null : x
-  }
+    const parsed = parseFloat(x);
+    return isNaN(parsed) ? null : x;
+  };
   const handleSubmit = useCallback(() => {
     node.update({
       name: editableValues.name,
@@ -68,89 +79,95 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
       productivityBonus: parseNumericInput(editableValues.productivityBonus),
       targetRate: parseNumericInput(editableValues.targetRate),
       targetRateUnits: editableValues.targetRateUnits,
-    })
+    });
     Object.entries(editableValues.ports).forEach(([portName, value]) => {
-      node.ports[portName].options.count = parseFloat(value)
-    })
-    setEditable(null)
-  }, [node, editableValues])
+      node.ports[portName].options.count = parseFloat(value);
+    });
+    setEditable(null);
+  }, [node, editableValues]);
 
   const handleMouseUp = (name) => {
     if (!moved) {
-      setEditable(name)
+      setEditable(name);
     }
-    setMoved(false)
-  }
+    setMoved(false);
+  };
 
   const handleChangeIcon = (port, icon) => {
     // Find all ports connected to this one, then change all of their icons.
     // For each source/target port in links, change icon
-    let seen = {}
-    let affectedNodes = []
+    let seen = {};
+    let affectedNodes = [];
 
     let f = (port) => {
-      if (!port) return
-      if (seen[port.options.id]) return
+      if (!port) return;
+      if (seen[port.options.id]) return;
 
-      seen[port.options.id] = true
-      port.options.icon = icon
-      affectedNodes.push(port.parent)
+      seen[port.options.id] = true;
+      port.options.icon = icon;
+      affectedNodes.push(port.parent);
 
-      _.values(port.links).forEach((link : ProductionLinkModel) => {
-        f(link.sourcePort)
-        f(link.targetPort)
-      })
-    }
-    f(port)
+      _.values(port.links).forEach((link: ProductionLinkModel) => {
+        f(link.sourcePort);
+        f(link.targetPort);
+      });
+    };
+    f(port);
     uniqBy(affectedNodes, (n) => n.options.id).forEach((node) => {
-      node.fireEvent({}, 'repaint')
-    })
-  }
+      node.fireEvent({}, "repaint");
+    });
+  };
 
   // EFFECTS
 
   useEffect(() => {
     return engine.registerListener({
       repaintCanvas: forceUpdate,
-    }).deregister
-  }, [engine, forceUpdate])
+    }).deregister;
+  }, [engine, forceUpdate]);
 
   useEffect(() => {
-    node.setLocked(editable !== null)
-  }, [node, editable])
+    node.setLocked(editable !== null);
+  }, [node, editable]);
 
   useEffect(
     () =>
       node.registerListener({
         eventDidFire: (e) => {
           switch (e.function) {
-            case 'selectionChanged':
+            case "selectionChanged":
               // submit onBlur
               if (!e.isSelected) {
-                handleSubmit()
+                handleSubmit();
               }
-              break
-            case 'positionChanged':
+              break;
+            case "positionChanged":
               if (!moved) {
-                setMoved(true)
+                setMoved(true);
               }
-              break
-            case 'repaint':
-              forceUpdate()
-              break
+              break;
+            case "repaint":
+              forceUpdate();
+              break;
             default:
             // it's ok
           }
         },
       }).deregister,
     [node, handleSubmit, moved, forceUpdate]
-  )
+  );
 
   // COMPONENTS
 
-  const editableInput = ({ name, format } : {name: string, format?: any => string}) => {
+  const editableInput = ({
+    name,
+    format,
+  }: {
+    name: string,
+    format?: (any) => string,
+  }) => {
     if (format == null) {
-      format = (x) => x
+      format = (x) => x;
     }
 
     if (editable) {
@@ -164,11 +181,11 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.keyCode === 13) {
-              handleSubmit()
+              handleSubmit();
             }
           }}
         />
-      )
+      );
     } else {
       return (
         <span
@@ -177,20 +194,20 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
         >
           {format(editableValues[name])}
         </span>
-      )
+      );
     }
-  }
+  };
 
   const editableTargetInput = ({ name, format }) => {
     if (format == null) {
-      format = (x) => x
+      format = (x) => x;
     }
 
     if (editable) {
       return (
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          style={{ display: 'flex' }}
+          style={{ display: "flex" }}
         >
           <input
             name={name}
@@ -200,7 +217,7 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
             onChange={handleInputChange}
             onKeyDown={(e) => {
               if (e.keyCode === 13) {
-                handleSubmit()
+                handleSubmit();
               }
             }}
           />
@@ -214,7 +231,7 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
             <option value="h">/h</option>
           </select>
         </div>
-      )
+      );
     } else {
       return (
         <span
@@ -223,12 +240,12 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
         >
           {format(editableValues[name])}
         </span>
-      )
+      );
     }
-  }
+  };
 
   const editablePortInput = (port) => {
-    const name = port.options.label
+    const name = port.options.label;
 
     if (editable) {
       return (
@@ -236,41 +253,41 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
           name={name}
           value={editableValues.ports[name]}
           onFocus={(e) => e.currentTarget.select()}
-          autoFocus={editable === ['port', name].join('-')}
+          autoFocus={editable === ["port", name].join("-")}
           onChange={handlePortInputChange}
           onMouseDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.keyCode === 13) {
-              handleSubmit()
+              handleSubmit();
             }
           }}
         />
-      )
+      );
     } else {
       return (
         <span
           onMouseDown={() => setMoved(false)}
-          onMouseUp={() => handleMouseUp(['port', name].join('-'))}
+          onMouseUp={() => handleMouseUp(["port", name].join("-"))}
         >
           {editableValues.ports[name]}
         </span>
-      )
+      );
     }
-  }
+  };
 
   // RENDER
 
-  const targetNode = node.targetRate > 0
-  const nodeStyle = node.isSelected() ? { borderColor: 'white' } : {}
+  const targetNode = node.targetRate > 0;
+  const nodeStyle = node.isSelected() ? { borderColor: "white" } : {};
 
   return (
     <div
-      className={`production-node ${targetNode ? 'target-node' : ''}`}
+      className={`production-node ${targetNode ? "target-node" : ""}`}
       onMouseDown={() => setEditable(null)}
       style={nodeStyle}
     >
       {node.name && (
-        <div className="header">{editableInput({ name: 'name' })}</div>
+        <div className="header">{editableInput({ name: "name" })}</div>
       )}
       <div className="body">
         <div className="inputs">
@@ -284,7 +301,7 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
               {!targetNode && editablePortInput(p)}
             </div>
           ))}
-          <div className="port-container new" onClick={handleAddPort('INPUT')}>
+          <div className="port-container new" onClick={handleAddPort("INPUT")}>
             +
           </div>
         </div>
@@ -293,8 +310,8 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
             <div className="assembler">
               <div className="row targetRate">
                 {editableTargetInput({
-                  name: 'targetRate',
-                  format: (x) => (x > 0 ? `${x}/${node.targetRateUnits}` : '-'),
+                  name: "targetRate",
+                  format: (x) => (x > 0 ? `${x}/${node.targetRateUnits}` : "-"),
                 })}
               </div>
             </div>
@@ -305,23 +322,23 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
             <div className="assembler">
               <div className="row">
                 <UIIcon name="duration" />
-                {editableInput({ name: 'duration', format: (x) => `${x}s` })}
+                {editableInput({ name: "duration", format: (x) => `${x}s` })}
               </div>
               <div className="row">
                 <UIIcon name="craftingSpeed" />
-                {editableInput({ name: 'craftingSpeed' })}
+                {editableInput({ name: "craftingSpeed" })}
               </div>
               <div className="row">
                 <UIIcon name="productivityBonus" />
                 {editableInput({
-                  name: 'productivityBonus',
-                  format: (x) => (x > 0 ? `+${x * 100}%` : '-'),
+                  name: "productivityBonus",
+                  format: (x) => (x > 0 ? `+${x * 100}%` : "-"),
                 })}
               </div>
               <div className="row">
                 <UIIcon name="assemblersRequired" />
                 <span>
-                  {((x) => (x ? Math.round(x * 100) / 100 : '-'))(
+                  {((x) => (x ? Math.round(x * 100) / 100 : "-"))(
                     node.assemblersRequired
                   )}
                 </span>
@@ -340,7 +357,7 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
               ))}
               <div
                 className="port-container new"
-                onClick={handleAddPort('OUTPUT')}
+                onClick={handleAddPort("OUTPUT")}
               >
                 +
               </div>
@@ -349,7 +366,7 @@ const ProductionNodeWidget = ({ engine, node } : { engine: any, node: Production
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProductionNodeWidget
+export default ProductionNodeWidget;

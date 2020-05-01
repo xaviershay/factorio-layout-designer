@@ -1,181 +1,184 @@
 // @flow
 
-import React from 'react'
+import React from "react";
 import {
   DefaultPortModel,
   DefaultLinkModel,
   DefaultNodeModel,
-} from '@projectstorm/react-diagrams'
-import { AbstractReactFactory } from '@projectstorm/react-canvas-core'
-import ProductionNodeWidget from './ProductionNodeWidget'
-import _ from 'lodash'
+} from "@projectstorm/react-diagrams";
+import { AbstractReactFactory } from "@projectstorm/react-canvas-core";
+import ProductionNodeWidget from "./ProductionNodeWidget";
+import _ from "lodash";
 
 export class ProductionLinkModel extends DefaultLinkModel {
-  setTargetPort(port : ProductionPortModel) {
-    super.setTargetPort(port)
-    this.matchUpPorts(this.sourcePort, port)
+  setTargetPort(port: ProductionPortModel) {
+    super.setTargetPort(port);
+    this.matchUpPorts(this.sourcePort, port);
   }
 
-  setSourcePort(port : ProductionPortModel) {
-    super.setSourcePort(port)
-    this.matchUpPorts(this.sourcePort, port)
+  setSourcePort(port: ProductionPortModel) {
+    super.setSourcePort(port);
+    this.matchUpPorts(this.sourcePort, port);
   }
 
-  get id() : string {
-    return this.options.id
+  get id(): string {
+    return this.options.id;
   }
 
-  get sourcePortName() : string {
+  get sourcePortName(): string {
     return [
       this.sourcePort.parent.options.name,
       this.sourcePort.options.icon,
-    ].join('-')
+    ].join("-");
   }
 
-  matchUpPorts(a : ProductionPortModel, b : ProductionPortModel) {
+  matchUpPorts(a: ProductionPortModel, b: ProductionPortModel) {
     if (a && b) {
       if (a.icon) {
-        b.icon = a.icon
+        b.icon = a.icon;
       } else if (b.icon) {
-        a.icon = b.icon
+        a.icon = b.icon;
       }
     }
   }
 }
 
-type ProductionPortOptionsType = {
-}
+type ProductionPortOptionsType = {};
 
 export class ProductionPortModel extends DefaultPortModel {
-  constructor(options : ProductionPortOptionsType = {}) {
+  constructor(options: ProductionPortOptionsType = {}) {
     super({
       ...options,
-      type: 'production-port',
-    })
+      type: "production-port",
+    });
   }
 
-  canLinkToPort(port : ProductionPortModel) {
+  canLinkToPort(port: ProductionPortModel) {
     if (super.canLinkToPort(port)) {
       if (this.icon && port.icon) {
-        return this.icon === port.icon
+        return this.icon === port.icon;
       }
-      return true
+      return true;
     }
   }
 
   get icon() {
-    return this.options.icon
+    return this.options.icon;
   }
 
-  set icon(x : string) {
-    this.options.icon = x
+  set icon(x: string) {
+    this.options.icon = x;
   }
 
-  createLinkModel(factory : ProductionLinkModel) {
-    return new ProductionLinkModel()
+  createLinkModel(factory: ProductionLinkModel) {
+    return new ProductionLinkModel();
   }
 
   serialize() {
     return {
       ...super.serialize(),
       options: this.options,
-    }
+    };
   }
 
-  deserialize(ob : any, engine : any) {
-    super.deserialize(ob, engine)
-    this.options = ob.data.options
+  deserialize(ob: any, engine: any) {
+    super.deserialize(ob, engine);
+    this.options = ob.data.options;
   }
 }
 
 export class ProductionNodeFactory extends AbstractReactFactory {
   constructor() {
-    super('production-node')
+    super("production-node");
   }
 
-  generateModel(event : ProductionNode) {
-    return new ProductionNode()
+  generateModel(event: ProductionNode) {
+    return new ProductionNode();
   }
 
-  generateReactWidget(event : any) {
-    return <ProductionNodeWidget engine={this.engine} node={event.model} />
+  generateReactWidget(event: any) {
+    return <ProductionNodeWidget engine={this.engine} node={event.model} />;
   }
 }
 
 export class ProductionPortFactory extends AbstractReactFactory {
   constructor() {
-    super('production-port')
+    super("production-port");
   }
 
-  generateModel(event : ProductionPortModel) {
-    return new ProductionPortModel()
+  generateModel(event: ProductionPortModel) {
+    return new ProductionPortModel();
   }
 }
 
-type ProductionNodeOptionsType = {}
+type ProductionNodeOptionsType = {};
 
 export class ProductionNode extends DefaultNodeModel {
-  constructor(options : ProductionNodeOptionsType = {}) {
+  constructor(options: ProductionNodeOptionsType = {}) {
     super({
       ...options,
-      type: 'production-node',
-    })
+      type: "production-node",
+    });
   }
 
   get id() {
-    return this.options.id
+    return this.options.id;
   }
   get name() {
-    return this.options.name
+    return this.options.name;
   }
   get duration() {
-    return this.options.duration
+    return this.options.duration;
   }
   get craftingSpeed() {
-    return this.options.craftingSpeed
+    return this.options.craftingSpeed;
   }
   get productivityBonus() {
-    return this.options.productivityBonus
+    return this.options.productivityBonus;
   }
   get targetRate() {
-    return this.options.targetRate
+    return this.options.targetRate;
   }
   get targetRateUnits() {
-    return this.options.targetRateUnits
+    return this.options.targetRateUnits;
   }
   get targetRateInSeconds() {
     if (!this.options.targetRate) {
-      return null
+      return null;
     }
 
     const multiplier = {
       s: 1,
       m: 1 / 60.0,
       h: 1 / 60.0 / 60.0,
-    }[this.targetRateUnits]
+    }[this.targetRateUnits];
 
     if (!multiplier) {
-      throw new Error(`Unknown target rate unit: ${this.targetRateUnits}`)
+      throw new Error(`Unknown target rate unit: ${this.targetRateUnits}`);
     }
-    return this.targetRate * multiplier
+    return this.targetRate * multiplier;
   }
 
   get inputPorts() {
-    return _.values(this.ports).filter((p : ProductionPortModel) => p.options.in)
+    return _.values(this.ports).filter(
+      (p: ProductionPortModel) => p.options.in
+    );
   }
   get outputPorts() {
-    return _.values(this.ports).filter((p : ProductionPortModel) => !p.options.in)
+    return _.values(this.ports).filter(
+      (p: ProductionPortModel) => !p.options.in
+    );
   }
 
-  update(values : ProductionNodeOptionsType) {
+  update(values: ProductionNodeOptionsType) {
     this.options = {
       ...this.options,
       ...values,
-    }
+    };
   }
 
   addOutput() {
-    const portName = 'out-' + (this.outputPorts.length + 1)
+    const portName = "out-" + (this.outputPorts.length + 1);
     this.addPort(
       new ProductionPortModel({
         in: false,
@@ -183,12 +186,12 @@ export class ProductionNode extends DefaultNodeModel {
         icon: null,
         count: 1,
       })
-    )
-    return portName
+    );
+    return portName;
   }
 
   addInput() {
-    const portName = 'in-' + (this.inputPorts.length + 1)
+    const portName = "in-" + (this.inputPorts.length + 1);
     this.addPort(
       new ProductionPortModel({
         in: true,
@@ -196,14 +199,14 @@ export class ProductionNode extends DefaultNodeModel {
         icon: null,
         count: 1,
       })
-    )
-    return portName
+    );
+    return portName;
   }
 
   get assemblersRequired() {
-    const { calculatedRate } = this.options
+    const { calculatedRate } = this.options;
 
-    if (!calculatedRate) return null
+    if (!calculatedRate) return null;
 
     // Copied from Foreman, machines have to wait for a new tick before
     // starting a new item, so round up to nearest tick (assume 60fps). Return
@@ -211,22 +214,22 @@ export class ProductionNode extends DefaultNodeModel {
     // help user adjust and tweak.
     return (
       Math.ceil((this.duration / this.craftingSpeed) * calculatedRate * 60) / 60
-    )
+    );
   }
 
-  set calculatedRate(x : number) {
-    this.options.calculatedRate = x
+  set calculatedRate(x: number) {
+    this.options.calculatedRate = x;
   }
 
   serialize() {
     return {
       ...super.serialize(),
       options: this.options,
-    }
+    };
   }
 
-  deserialize(ob : any, engine : any) {
-    super.deserialize(ob, engine)
-    this.options = ob.data.options
+  deserialize(ob: any, engine: any) {
+    super.deserialize(ob, engine);
+    this.options = ob.data.options;
   }
 }

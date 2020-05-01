@@ -1,18 +1,26 @@
 // @flow
 
-import React from 'react'
-import { PortWidget } from '@projectstorm/react-diagrams'
-import ReactModal from 'react-modal'
-import { useModal } from 'react-modal-hook'
-import {type ProductionPortModel } from './ProductionNode'
+import React from "react";
+import { PortWidget } from "@projectstorm/react-diagrams";
+import ReactModal from "react-modal";
+import { useModal } from "react-modal-hook";
+import { type ProductionPortModel } from "./ProductionNode";
 
 function imageFor(x) {
-  if (x == null) return '/img/transparent.png'
-  return `/img/icons/${x}.png`
+  if (x == null) return "/img/transparent.png";
+  return `/img/icons/${x}.png`;
 }
 
-const PortIcon = ({ engine, port, onChangeIcon} : { engine: any, port : ProductionPortModel, onChangeIcon : string => void}) => {
-  const icon = port.options.icon
+const PortIcon = ({
+  engine,
+  port,
+  onChangeIcon,
+}: {
+  engine: any,
+  port: ProductionPortModel,
+  onChangeIcon: (string) => void,
+}) => {
+  const icon = port.options.icon;
   const [showModal, hideModal] = useModal(() => (
     <ReactModal
       isOpen
@@ -22,13 +30,13 @@ const PortIcon = ({ engine, port, onChangeIcon} : { engine: any, port : Producti
     >
       <input placeholder="Search" />
       <div>
-        {['iron-plate', 'copper-plate', 'copper-cable', 'green-circuit'].map(
+        {["iron-plate", "copper-plate", "copper-cable", "green-circuit"].map(
           (icon) => (
             <button
               key={icon}
               onClick={() => {
-                hideModal()
-                onChangeIcon(icon)
+                hideModal();
+                onChangeIcon(icon);
               }}
             >
               <img src={imageFor(icon)} height="20" width="20" alt={icon} />
@@ -37,14 +45,14 @@ const PortIcon = ({ engine, port, onChangeIcon} : { engine: any, port : Producti
         )}
       </div>
     </ReactModal>
-  ))
+  ));
 
   return (
     <div
       onContextMenu={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        showModal()
+        e.preventDefault();
+        e.stopPropagation();
+        showModal();
       }}
     >
       <PortWidget engine={engine} port={port}>
@@ -57,7 +65,7 @@ const PortIcon = ({ engine, port, onChangeIcon} : { engine: any, port : Producti
         />
       </PortWidget>
     </div>
-  )
-}
+  );
+};
 
-export default PortIcon
+export default PortIcon;

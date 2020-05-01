@@ -4,42 +4,45 @@
 // https://bitbucket.org/PowellNGL/foreman/pull-requests/17/do-not-merge-progress-modal-new-solver/diff#chg-Foreman/Models/Solver/GoogleSolver.cs
 //
 // It uses an or-tools webservice.
-import _ from 'lodash'
+import _ from "lodash";
 
-import {type ProductionNode, type ProductionLinkModel} from './ProductionNode'
+import {
+  type ProductionNode,
+  type ProductionLinkModel,
+} from "./ProductionNode";
 
-type NodeInterface = ProductionNode
-type LinkInterface = ProductionLinkModel
+type NodeInterface = ProductionNode;
+type LinkInterface = ProductionLinkModel;
 
 type Variable = {|
   name: string,
   range: [number, number],
-|}
+|};
 
-type VariableType = 'ACTUAL' | 'ERROR'
-type LinkType = 'INPUT' | 'OUTPUT'
+type VariableType = "ACTUAL" | "ERROR";
+type LinkType = "INPUT" | "OUTPUT";
 
 export default class ProductionSolver {
-  nodes : Array<NodeInterface>
-  variables: {[string]: Variable}
-  objective: {[string]: number}
-  constraints : Array<{}>
-  endpoint : string
+  nodes: Array<NodeInterface>;
+  variables: { [string]: Variable };
+  objective: { [string]: number };
+  constraints: Array<{}>;
+  endpoint: string;
 
   constructor() {
-    this.nodes = []
-    this.variables = {}
-    this.objective = {}
-    this.constraints = []
+    this.nodes = [];
+    this.variables = {};
+    this.objective = {};
+    this.constraints = [];
     this.endpoint =
-      'https://sa6mifk9pb.execute-api.us-east-1.amazonaws.com/solveLP'
+      "https://sa6mifk9pb.execute-api.us-east-1.amazonaws.com/solveLP";
   }
 
-  addNode(node : NodeInterface) {
-    const v = this.nodeVar(node, 'ACTUAL')
+  addNode(node: NodeInterface) {
+    const v = this.nodeVar(node, "ACTUAL");
 
     // The rate of all nodes should be minimized
-    this.objective[v.name] = 1.0
+    this.objective[v.name] = 1.0;
   }
 
   // Ensure that the solution has a rate matching desired for this node.
@@ -49,17 +52,17 @@ export default class ProductionSolver {
   // match the desired asked for here.
   //
   // TODO: Best effort not support yet, need to add error variables
-  addTarget(node : NodeInterface, desiredRate : number) {
-    const nodeVar = this.nodeVar(node, 'ACTUAL')
+  addTarget(node: NodeInterface, desiredRate: number) {
+    const nodeVar = this.nodeVar(node, "ACTUAL");
 
     const constraint = {
       range: [desiredRate, desiredRate],
       coefficients: {
         [nodeVar.name]: 1,
       },
-    }
+    };
 
-    this.constraints.push(constraint)
+    this.constraints.push(constraint);
   }
 
   // Ensure that the sum on the end of all the links is in relation to the rate
@@ -71,36 +74,41 @@ export default class ProductionSolver {
   // those two links must be equal to 2 time the rate of the recipe.  For the
   // steel input to a solar panel, the sum of every input variable to this node
   // must equal 5 * rate.
-  addRatio(node : NodeInterface, links : Array<LinkInterface>, rate : number, type : LinkType) {
-    const nodeVar = this.nodeVar(node, 'ACTUAL')
+  addRatio(
+    node: NodeInterface,
+    links: Array<LinkInterface>,
+    rate: number,
+    type: LinkType
+  ) {
+    const nodeVar = this.nodeVar(node, "ACTUAL");
 
     // Output ratios are increased by any productivity bonus attached to the
     // node.
-    const productivity = 1 + (type === 'OUTPUT' ? node.productivityBonus : 0)
+    const productivity = 1 + (type === "OUTPUT" ? node.productivityBonus : 0);
 
     let constraint = {
       range: [0, 0],
       coefficients: {
         [nodeVar.name]: rate * productivity,
       },
-    }
+    };
 
     links.forEach((link) => {
-      const linkVar = this.linkVar(link, type)
-      constraint.coefficients[linkVar.name] = -1
-    })
+      const linkVar = this.linkVar(link, type);
+      constraint.coefficients[linkVar.name] = -1;
+    });
 
-    this.constraints.push(constraint)
+    this.constraints.push(constraint);
   }
 
   // Constrain input to a node for a particular item so that the node does not
   // consume more than is being produced by the supplier.
   //
   // Consuming less than is being produced is fine. This represents a backup.
-  addInputLinks(node : NodeInterface, links : Array<LinkInterface>) {
+  addInputLinks(node: NodeInterface, links: Array<LinkInterface>) {
     links.forEach((link) => {
-      const supplierVar = this.linkVar(link, 'OUTPUT')
-      const consumerVar = this.linkVar(link, 'INPUT')
+      const supplierVar = this.linkVar(link, "OUTPUT");
+      const consumerVar = this.linkVar(link, "INPUT");
 
       // The consuming end of the link must be no greater than the supplyind
       // end.
@@ -111,8 +119,8 @@ export default class ProductionSolver {
             [supplierVar.name]: 1,
             [consumerVar.name]: -1,
           },
-        }
-        this.constraints.push(constraint)
+        };
+        this.constraints.push(constraint);
       }
 
       // TODO:
@@ -124,71 +132,71 @@ export default class ProductionSolver {
       //
       // TODO: A more correct solution for pass-through would be to forbid
       // over-supply on them.
-    })
+    });
   }
 
   toJson() {
-    let variableHash = {}
+    let variableHash = {};
     _.values(this.variables).forEach((v) => {
-      variableHash[v.name] = v.range
-    })
+      variableHash[v.name] = v.range;
+    });
     const doc = {
       variables: variableHash,
       constraints: this.constraints,
       objective: {
-        type: 'min',
+        type: "min",
         coefficients: this.objective,
       },
-    }
-    return JSON.stringify(doc)
+    };
+    return JSON.stringify(doc);
   }
 
   async solve() {
     try {
       const solution = await fetch(this.endpoint, {
-        method: 'post',
+        method: "post",
         body: this.toJson(),
-      })
+      });
 
-      const jsonSolution = await solution.json()
+      const jsonSolution = await solution.json();
 
       if (jsonSolution.solved) {
-        return jsonSolution.variables
+        return jsonSolution.variables;
       } else {
-        return null
+        return null;
       }
     } catch (e) {
-      console.log(e)
-      return null
+      console.log(e);
+      return null;
     }
   }
 
-  nodeVar(node : NodeInterface, type : VariableType) {
-    return this.variableFor(node.id, type, node.name)
+  nodeVar(node: NodeInterface, type: VariableType) {
+    return this.variableFor(node.id, type, node.name);
   }
 
-  linkVar(link : LinkInterface, type : LinkType) {
-    let name = 'link'
-    if (type === 'INPUT') {
-      name = link.targetPortName
-    } else if (type === 'OUTPUT') {
-      name = link.sourcePortName
+  linkVar(link: LinkInterface, type: LinkType) {
+    let name = "link";
+    if (type === "INPUT") {
+      name = link.targetPortName;
+    } else if (type === "OUTPUT") {
+      name = link.sourcePortName;
     }
-    return this.variableFor(link.id, type, name)
+    return this.variableFor(link.id, type, name);
   }
 
-  variableFor(objectId : string, type : string, name : string) : Variable {
-    const varId = [objectId, type].join(':')
+  variableFor(objectId: string, type: string, name: string): Variable {
+    const varId = [objectId, type].join(":");
     if (this.variables[varId]) {
-      return this.variables[varId]
+      return this.variables[varId];
     }
 
     const newVar = {
-      name: [name, type, Object.keys(this.variables).length + 1].join(','),
+      name: [name, type, Object.keys(this.variables).length + 1].join(","),
       range: [0, Number.POSITIVE_INFINITY],
-    }
+    };
 
-    this.variables[varId] = newVar
-    return newVar
+    this.variables[varId] = newVar;
+    return newVar;
   }
 }
