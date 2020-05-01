@@ -1,9 +1,13 @@
+// @flow
+
 import React, { useState, useEffect, useCallback } from 'react'
 import uniqBy from 'lodash/uniqBy'
 import PortIcon from './PortIcon'
 import UIIcon from './UIIcon'
+import _ from 'lodash'
+import { type ProductionNode, type ProductionPortModel, type ProductionLinkModel } from './ProductionNode'
 
-const ProductionNodeWidget = ({ engine, node }) => {
+const ProductionNodeWidget = ({ engine, node } : { engine: any, node: ProductionNode}) => {
   // STATE
 
   const [editable, setEditable] = useState(null)
@@ -14,7 +18,7 @@ const ProductionNodeWidget = ({ engine, node }) => {
   const [moved, setMoved] = useState(false)
 
   let defaultPortValues = {}
-  Object.values(node.ports).forEach((port) => {
+  _.values(node.ports).forEach((port : ProductionPortModel) => {
     defaultPortValues[port.options.label] = port.options.count
   })
   const [editableValues, setEditableValues] = useState({
@@ -44,7 +48,7 @@ const ProductionNodeWidget = ({ engine, node }) => {
   }
 
   const handleAddPort = (type) => (e) => {
-    const portName = type === 'INPUT' ? node.addInput() : node.addOutput()
+    const portName : string = type === 'INPUT' ? node.addInput() : node.addOutput()
     setEditableValues({
       ...editableValues,
       ports: { ...editableValues.ports, [portName]: 1 },
@@ -92,7 +96,7 @@ const ProductionNodeWidget = ({ engine, node }) => {
       port.options.icon = icon
       affectedNodes.push(port.parent)
 
-      Object.values(port.links).forEach((link) => {
+      _.values(port.links).forEach((link : ProductionLinkModel) => {
         f(link.sourcePort)
         f(link.targetPort)
       })
@@ -144,7 +148,7 @@ const ProductionNodeWidget = ({ engine, node }) => {
 
   // COMPONENTS
 
-  const editableInput = ({ name, format }) => {
+  const editableInput = ({ name, format } : {name: string, format?: any => string}) => {
     if (format == null) {
       format = (x) => x
     }
@@ -317,7 +321,7 @@ const ProductionNodeWidget = ({ engine, node }) => {
               <div className="row">
                 <UIIcon name="assemblersRequired" />
                 <span>
-                  {((x) => (x > 0 ? Math.round(x * 100) / 100 : '-'))(
+                  {((x) => (x ? Math.round(x * 100) / 100 : '-'))(
                     node.assemblersRequired
                   )}
                 </span>

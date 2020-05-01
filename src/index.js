@@ -1,6 +1,9 @@
+// @flow
+
 import React, { useState, useEffect } from 'react'
 import * as ReactDOM from 'react-dom'
 import './index.css'
+import _ from 'lodash'
 import createEngine, { DiagramModel } from '@projectstorm/react-diagrams'
 import { CanvasWidget } from '@projectstorm/react-canvas-core'
 import { ProductionNode, ProductionNodeFactory, ProductionPortFactory } from './ProductionNode'
@@ -244,8 +247,8 @@ const App = () => {
         solver.addTarget(node, targetRate / (1 + node.productivityBonus))
       }
 
-      Object.values(node.ports).forEach((port) => {
-        const links = Object.values(port.links)
+      _.values(node.ports).forEach((port : ProductionPortModel) => {
+        const links = _.values(port.links)
         if (links.length > 0) {
           solver.addRatio(
             node,

@@ -1,3 +1,5 @@
+// @flow
+
 import React from 'react'
 import {
   DefaultPortModel,
@@ -6,19 +8,31 @@ import {
 } from '@projectstorm/react-diagrams'
 import { AbstractReactFactory } from '@projectstorm/react-canvas-core'
 import ProductionNodeWidget from './ProductionNodeWidget'
+import _ from 'lodash'
 
 export class ProductionLinkModel extends DefaultLinkModel {
-  setTargetPort(port) {
+  setTargetPort(port : ProductionPortModel) {
     super.setTargetPort(port)
     this.matchUpPorts(this.sourcePort, port)
   }
 
-  setSourcePort(port) {
+  setSourcePort(port : ProductionPortModel) {
     super.setSourcePort(port)
     this.matchUpPorts(this.sourcePort, port)
   }
 
-  matchUpPorts(a, b) {
+  get id() : string {
+    return this.options.id
+  }
+
+  get sourcePortName() : string {
+    return [
+      this.sourcePort.parent.options.name,
+      this.sourcePort.options.icon,
+    ].join('-')
+  }
+
+  matchUpPorts(a : ProductionPortModel, b : ProductionPortModel) {
     if (a && b) {
       if (a.icon) {
         b.icon = a.icon
@@ -29,15 +43,18 @@ export class ProductionLinkModel extends DefaultLinkModel {
   }
 }
 
+type ProductionPortOptionsType = {
+}
+
 export class ProductionPortModel extends DefaultPortModel {
-  constructor(options = {}) {
+  constructor(options : ProductionPortOptionsType = {}) {
     super({
       ...options,
       type: 'production-port',
     })
   }
 
-  canLinkToPort(port) {
+  canLinkToPort(port : ProductionPortModel) {
     if (super.canLinkToPort(port)) {
       if (this.icon && port.icon) {
         return this.icon === port.icon
@@ -50,11 +67,11 @@ export class ProductionPortModel extends DefaultPortModel {
     return this.options.icon
   }
 
-  set icon(x) {
+  set icon(x : string) {
     this.options.icon = x
   }
 
-  createLinkModel(factory) {
+  createLinkModel(factory : ProductionLinkModel) {
     return new ProductionLinkModel()
   }
 
@@ -65,7 +82,7 @@ export class ProductionPortModel extends DefaultPortModel {
     }
   }
 
-  deserialize(ob, engine) {
+  deserialize(ob : any, engine : any) {
     super.deserialize(ob, engine)
     this.options = ob.data.options
   }
@@ -76,11 +93,11 @@ export class ProductionNodeFactory extends AbstractReactFactory {
     super('production-node')
   }
 
-  generateModel(event) {
+  generateModel(event : ProductionNode) {
     return new ProductionNode()
   }
 
-  generateReactWidget(event) {
+  generateReactWidget(event : any) {
     return <ProductionNodeWidget engine={this.engine} node={event.model} />
   }
 }
@@ -90,19 +107,15 @@ export class ProductionPortFactory extends AbstractReactFactory {
     super('production-port')
   }
 
-  generateModel(event) {
+  generateModel(event : ProductionPortModel) {
     return new ProductionPortModel()
   }
-
-  /*
-  generateReactWidget(event) {
-    return <ProductionNodeWidget engine={this.engine} node={event.model} />
-  }
-  */
 }
 
+type ProductionNodeOptionsType = {}
+
 export class ProductionNode extends DefaultNodeModel {
-  constructor(options = {}) {
+  constructor(options : ProductionNodeOptionsType = {}) {
     super({
       ...options,
       type: 'production-node',
@@ -148,13 +161,13 @@ export class ProductionNode extends DefaultNodeModel {
   }
 
   get inputPorts() {
-    return Object.values(this.ports).filter((p) => p.options.in)
+    return _.values(this.ports).filter((p : ProductionPortModel) => p.options.in)
   }
   get outputPorts() {
-    return Object.values(this.ports).filter((p) => !p.options.in)
+    return _.values(this.ports).filter((p : ProductionPortModel) => !p.options.in)
   }
 
-  update(values) {
+  update(values : ProductionNodeOptionsType) {
     this.options = {
       ...this.options,
       ...values,
@@ -201,7 +214,7 @@ export class ProductionNode extends DefaultNodeModel {
     )
   }
 
-  set calculatedRate(x) {
+  set calculatedRate(x : number) {
     this.options.calculatedRate = x
   }
 
@@ -212,7 +225,7 @@ export class ProductionNode extends DefaultNodeModel {
     }
   }
 
-  deserialize(ob, engine) {
+  deserialize(ob : any, engine : any) {
     super.deserialize(ob, engine)
     this.options = ob.data.options
   }

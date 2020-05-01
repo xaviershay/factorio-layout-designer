@@ -1,3 +1,5 @@
+// @flow
+
 import React from 'react'
 
 const makeIcon = (url, title, attribution) => {
@@ -36,7 +38,7 @@ const icons = {
   ),
 }
 
-const UIIcon = ({ name }) => {
+const UIIcon = ({ name } : { name : string }) => {
   const icon = icons[name]
 
   if (!icon) throw new Error(`Unknown UI icon: ${name}`)

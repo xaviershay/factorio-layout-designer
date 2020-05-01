@@ -1,8 +1,31 @@
+// @flow
+
 // Ported from
 // https://bitbucket.org/PowellNGL/foreman/pull-requests/17/do-not-merge-progress-modal-new-solver/diff#chg-Foreman/Models/Solver/GoogleSolver.cs
 //
 // It uses an or-tools webservice.
+import _ from 'lodash'
+
+import {type ProductionNode, type ProductionLinkModel} from './ProductionNode'
+
+type NodeInterface = ProductionNode
+type LinkInterface = ProductionLinkModel
+
+type Variable = {|
+  name: string,
+  range: [number, number],
+|}
+
+type VariableType = 'ACTUAL' | 'ERROR'
+type LinkType = 'INPUT' | 'OUTPUT'
+
 export default class ProductionSolver {
+  nodes : Array<NodeInterface>
+  variables: {[string]: Variable}
+  objective: {[string]: number}
+  constraints : Array<{}>
+  endpoint : string
+
   constructor() {
     this.nodes = []
     this.variables = {}
@@ -12,7 +35,7 @@ export default class ProductionSolver {
       'https://sa6mifk9pb.execute-api.us-east-1.amazonaws.com/solveLP'
   }
 
-  addNode(node) {
+  addNode(node : NodeInterface) {
     const v = this.nodeVar(node, 'ACTUAL')
 
     // The rate of all nodes should be minimized
@@ -26,7 +49,7 @@ export default class ProductionSolver {
   // match the desired asked for here.
   //
   // TODO: Best effort not support yet, need to add error variables
-  addTarget(node, desiredRate) {
+  addTarget(node : NodeInterface, desiredRate : number) {
     const nodeVar = this.nodeVar(node, 'ACTUAL')
 
     const constraint = {
@@ -48,7 +71,7 @@ export default class ProductionSolver {
   // those two links must be equal to 2 time the rate of the recipe.  For the
   // steel input to a solar panel, the sum of every input variable to this node
   // must equal 5 * rate.
-  addRatio(node, links, rate, type) {
+  addRatio(node : NodeInterface, links : Array<LinkInterface>, rate : number, type : LinkType) {
     const nodeVar = this.nodeVar(node, 'ACTUAL')
 
     // Output ratios are increased by any productivity bonus attached to the
@@ -74,7 +97,7 @@ export default class ProductionSolver {
   // consume more than is being produced by the supplier.
   //
   // Consuming less than is being produced is fine. This represents a backup.
-  addInputLinks(node, links, rate) {
+  addInputLinks(node : NodeInterface, links : Array<LinkInterface>) {
     links.forEach((link) => {
       const supplierVar = this.linkVar(link, 'OUTPUT')
       const consumerVar = this.linkVar(link, 'INPUT')
@@ -83,7 +106,7 @@ export default class ProductionSolver {
       // end.
       {
         const constraint = {
-          range: [0, Number.POSITIVE_INFINTIY],
+          range: [0, Number.POSITIVE_INFINITY],
           coefficients: {
             [supplierVar.name]: 1,
             [consumerVar.name]: -1,
@@ -106,7 +129,7 @@ export default class ProductionSolver {
 
   toJson() {
     let variableHash = {}
-    Object.values(this.variables).forEach((v) => {
+    _.values(this.variables).forEach((v) => {
       variableHash[v.name] = v.range
     })
     const doc = {
@@ -140,27 +163,21 @@ export default class ProductionSolver {
     }
   }
 
-  nodeVar(node, type) {
+  nodeVar(node : NodeInterface, type : VariableType) {
     return this.variableFor(node.id, type, node.name)
   }
 
-  linkVar(link, type) {
+  linkVar(link : LinkInterface, type : LinkType) {
     let name = 'link'
     if (type === 'INPUT') {
-      name = [
-        link.targetPort.parent.options.name,
-        link.targetPort.options.icon,
-      ].join('-')
+      name = link.targetPortName
     } else if (type === 'OUTPUT') {
-      name = [
-        link.sourcePort.parent.options.name,
-        link.sourcePort.options.icon,
-      ].join('-')
+      name = link.sourcePortName
     }
-    return this.variableFor(link.options.id, type, name)
+    return this.variableFor(link.id, type, name)
   }
 
-  variableFor(objectId, type, name) {
+  variableFor(objectId : string, type : string, name : string) : Variable {
     const varId = [objectId, type].join(':')
     if (this.variables[varId]) {
       return this.variables[varId]

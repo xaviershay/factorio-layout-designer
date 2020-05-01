@@ -1,14 +1,17 @@
+// @flow
+
 import React from 'react'
 import { PortWidget } from '@projectstorm/react-diagrams'
 import ReactModal from 'react-modal'
 import { useModal } from 'react-modal-hook'
+import {type ProductionPortModel } from './ProductionNode'
 
 function imageFor(x) {
   if (x == null) return '/img/transparent.png'
   return `/img/icons/${x}.png`
 }
 
-const PortIcon = ({ engine, port, onChangeIcon }) => {
+const PortIcon = ({ engine, port, onChangeIcon} : { engine: any, port : ProductionPortModel, onChangeIcon : string => void}) => {
   const icon = port.options.icon
   const [showModal, hideModal] = useModal(() => (
     <ReactModal
