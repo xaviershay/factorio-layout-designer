@@ -16,4 +16,13 @@ Before commiting, format files:
 
     yarn fmt
 
+It has a soft dependency on (Factorio Item Browser API
+(FIB))[https://petstore.swagger.io/?url=https://raw.githubusercontent.com/factorio-item-browser/api-server/master/api/openapi.yaml#/]
+for fetching recipes and icons. The app is useable without it, just without
+icons and recipes need to be made by hand. It uses another lambda function
+`fib_auth.rb` to proxy auth calls, which is needed to keep the access key
+secret. This auth call returns a short lived JWT the client can use to access
+API endpoints directly.
+
 A test/development version is available at https://factorio-layout-designer.web.app/
+
