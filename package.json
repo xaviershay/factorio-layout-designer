@@ -5,12 +5,14 @@
   "dependencies": {
     "@emotion/core": "^10.0.28",
     "@emotion/styled": "^10.0.27",
+    "@openapitools/openapi-generator-cli": "^1.0.12-4.3.0",
     "@projectstorm/react-diagrams": "^6.0.1-beta.7",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
     "closest": "^0.0.1",
     "dagre": "^0.8.5",
+    "fib-api-client": "file:gen/api",
     "firebase": "^7.14.2",
     "lodash": "^4.17.15",
     "mathjs": "^6.6.4",
@@ -30,7 +32,8 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "precommit": "lint-staged",
-    "fmt": "prettier --write 'src/**/*.js'"
+    "fmt": "prettier --write 'src/**/*.js'",
+    "api": "rm -rf gen/api && openapi-generator generate -i https://raw.githubusercontent.com/factorio-item-browser/api-server/master/api/openapi.yaml --generator-name javascript-flowtyped -o gen/api --config api.json && cd gen/api && yarn"
   },
   "eslintConfig": {
     "extends": "react-app"

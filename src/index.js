@@ -18,6 +18,7 @@ import ProductionSolver from "./ProductionSolver";
 import { useModal } from "react-modal-hook";
 import { StyledFirebaseAuth } from "react-firebaseui";
 import * as firebase from "firebase/app";
+import FibClient from "./FibClient";
 import "firebase/analytics";
 import "firebase/storage";
 import "firebase/auth";
@@ -47,6 +48,9 @@ const uiConfig = {
     signInSuccessWithAuthResult: () => false,
   },
 };
+
+const fibClient = new FibClient();
+window.fibClient = fibClient
 
 const engine = createEngine();
 engine.maxNumberPointsPerLink = 0;
@@ -303,6 +307,13 @@ const App = () => {
     }
   };
 
+  const handleRecipeSearch = async (e) => {
+    const q = e.target.value;
+
+    console.log(q);
+    //console.log(await fibClient.search("oil"))
+  };
+
   return (
     <div style={{ width: "100%", height: "100%" }}>
       <div>
@@ -320,7 +331,7 @@ const App = () => {
       <div className="body">
         <div className="tray">
           <div className="search">
-            <input placeholder="Search" />
+            <input placeholder="Search" onChange={handleRecipeSearch} />
           </div>
           <div
             className="tray-item production-node"
