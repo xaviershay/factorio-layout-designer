@@ -11,6 +11,7 @@ import {
   ProductionNodeFactory,
   ProductionPortFactory,
 } from "./ProductionNode";
+import AuthHeader, { type User } from './AuthHeader'
 import { ModalProvider } from "react-modal-hook";
 import ReactModal from "react-modal";
 import DiagramState from "./DiagramState";
@@ -189,14 +190,12 @@ const nodeWidth = 180;
 const nodeHeight = 120;
 const SIGNED_OUT = "SIGNED_OUT"
 
-type SignedInUser = {
-  uid: string,
-  email: string,
-}
+const USER_LOADING = {type: 'loading'}
+const USER_SIGNED_OUT = {type: 'signed_out'}
 
 const App = () => {
   // null means we are still loading auth state
-  const [user, setUser] = useState<'SIGNED_OUT' | SignedInUser | null>(null);
+  const [user, setUser] = useState<User>(USER_LOADING);
 
   const [showLoginModal, hideLoginModal] = useModal(() => (
     <ReactModal
@@ -215,9 +214,9 @@ const App = () => {
       firebase.auth().onAuthStateChanged((user) => {
         // This will always be called at least once
         if (user == null) {
-          setUser(SIGNED_OUT)
+          setUser(USER_SIGNED_OUT)
         } else {
-          setUser(user);
+          setUser({...user, type: 'signed_in'});
         }
 
         if (user) {
@@ -228,7 +227,7 @@ const App = () => {
   );
 
   const handleSerialize = async () => {
-    if (user == null || user === SIGNED_OUT) {
+    if (user.type !== 'signed_in') {
       return;
     }
     const ref = firebase
@@ -243,7 +242,7 @@ const App = () => {
   };
 
   const handleLoad = async () => {
-    if (user == null) {
+    if (user.type !== 'signed_in') {
       return;
     }
     const ref = firebase
@@ -334,17 +333,7 @@ const App = () => {
           <button onClick={handleLoad}>Load</button>
           <button onClick={handleSolve}>Solve</button>
         </div>
-        {user !== null &&
-          <div>
-            {user === SIGNED_OUT && <button onClick={showLoginModal}>Sign in</button>}
-            {user !== SIGNED_OUT && (
-              <div style={{ display: "inline" }}>
-                {user.email}{" "}
-                <button onClick={() => firebase.auth().signOut()}>Sign out</button>
-              </div>
-            )}
-          </div>
-        }
+        <AuthHeader user={user} handleSignIn={showLoginModal} />
       </div>
       <div className="body">
         <div className="tray">
