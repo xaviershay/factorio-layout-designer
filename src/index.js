@@ -187,9 +187,16 @@ engine.setModel(model);
 // Estimates, used for centering nodes when dropping from tray.
 const nodeWidth = 180;
 const nodeHeight = 120;
+const SIGNED_OUT = "SIGNED_OUT"
+
+type SignedInUser = {
+  uid: string,
+  email: string,
+}
 
 const App = () => {
-  const [user, setUser] = useState(null);
+  // null means we are still loading auth state
+  const [user, setUser] = useState<'SIGNED_OUT' | SignedInUser | null>(null);
 
   const [showLoginModal, hideLoginModal] = useModal(() => (
     <ReactModal
@@ -206,7 +213,12 @@ const App = () => {
   useEffect(
     () =>
       firebase.auth().onAuthStateChanged((user) => {
-        setUser(user);
+        // This will always be called at least once
+        if (user == null) {
+          setUser(SIGNED_OUT)
+        } else {
+          setUser(user);
+        }
 
         if (user) {
           hideLoginModal();
@@ -216,7 +228,7 @@ const App = () => {
   );
 
   const handleSerialize = async () => {
-    if (user == null) {
+    if (user == null || user === SIGNED_OUT) {
       return;
     }
     const ref = firebase
@@ -322,15 +334,17 @@ const App = () => {
           <button onClick={handleLoad}>Load</button>
           <button onClick={handleSolve}>Solve</button>
         </div>
-        <div>
-          {user == null && <button onClick={showLoginModal}>Sign in</button>}
-          {user != null && (
-            <div style={{ display: "inline" }}>
-              {user.email}{" "}
-              <button onClick={() => firebase.auth().signOut()}>Sign out</button>
-            </div>
-          )}
-        </div>
+        {user !== null &&
+          <div>
+            {user === SIGNED_OUT && <button onClick={showLoginModal}>Sign in</button>}
+            {user !== SIGNED_OUT && (
+              <div style={{ display: "inline" }}>
+                {user.email}{" "}
+                <button onClick={() => firebase.auth().signOut()}>Sign out</button>
+              </div>
+            )}
+          </div>
+        }
       </div>
       <div className="body">
         <div className="tray">
