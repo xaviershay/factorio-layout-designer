@@ -39,7 +39,13 @@ const PortIcon = ({
                 onChangeIcon(icon);
               }}
             >
-              <img src={imageFor(icon)} height="20" width="20" alt={icon} />
+              <img
+                draggable={false}
+                src={imageFor(icon)}
+                height="20"
+                width="20"
+                alt={icon}
+              />
             </button>
           )
         )}
