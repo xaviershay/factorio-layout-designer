@@ -11,6 +11,12 @@ import ProductionNodeWidget from "./ProductionNodeWidget";
 import _ from "lodash";
 
 export class ProductionLinkModel extends DefaultLinkModel {
+  // There are circular type dependencies here, so need to ignore this lint.
+  // eslint-disable-next-line no-use-before-define
+  sourcePort: ProductionPortModel;
+  // eslint-disable-next-line no-use-before-define
+  targetPort: ProductionPortModel;
+
   setTargetPort(port: ProductionPortModel) {
     super.setTargetPort(port);
     this.matchUpPorts(this.sourcePort, port);
@@ -25,11 +31,28 @@ export class ProductionLinkModel extends DefaultLinkModel {
     return this.options.id;
   }
 
-  get sourcePortName(): string {
-    return [
-      this.sourcePort.parent.options.name,
-      this.sourcePort.options.icon,
-    ].join("-");
+  get inputPortName(): string {
+    if (this.targetPort && this.targetPort.isInput) {
+      return this.targetPort.name;
+    }
+
+    if (this.sourcePort && this.sourcePort.isInput) {
+      return this.sourcePort.name;
+    }
+
+    throw new Error("Link is not connected to an input!");
+  }
+
+  get outputPortName(): string {
+    if (this.targetPort && !this.targetPort.isInput) {
+      return this.targetPort.name;
+    }
+
+    if (this.sourcePort && !this.sourcePort.isInput) {
+      return this.sourcePort.name;
+    }
+
+    throw new Error("Link is not connected to an output!");
   }
 
   matchUpPorts(a: ProductionPortModel, b: ProductionPortModel) {
@@ -62,6 +85,10 @@ export class ProductionPortModel extends DefaultPortModel {
     }
   }
 
+  get isInput(): boolean {
+    return this.options.in;
+  }
+
   get icon() {
     return this.options.icon;
   }
@@ -70,7 +97,12 @@ export class ProductionPortModel extends DefaultPortModel {
     this.options.icon = x;
   }
 
+  get name(): string {
+    return [this.parent.options.name, this.icon].join("-");
+  }
+
   createLinkModel(factory: ProductionLinkModel) {
+    console.log("creating link model");
     return new ProductionLinkModel();
   }
 

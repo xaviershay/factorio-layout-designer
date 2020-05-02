@@ -178,9 +178,9 @@ export default class ProductionSolver {
   linkVar(link: LinkInterface, type: LinkType) {
     let name = "link";
     if (type === "INPUT") {
-      name = link.targetPortName;
+      name = link.inputPortName;
     } else if (type === "OUTPUT") {
-      name = link.sourcePortName;
+      name = link.outputPortName;
     }
     return this.variableFor(link.id, type, name);
   }
