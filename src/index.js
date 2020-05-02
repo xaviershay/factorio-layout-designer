@@ -4,7 +4,10 @@ import React from "react";
 import * as ReactDOM from "react-dom";
 import "./index.css";
 import _ from "lodash";
-import createEngine, { DiagramModel } from "@projectstorm/react-diagrams";
+import createEngine, {
+  DiagramModel,
+  DagreEngine,
+} from "@projectstorm/react-diagrams";
 import { CanvasWidget } from "@projectstorm/react-canvas-core";
 import {
   ProductionNode,
@@ -280,6 +283,20 @@ const App = () => {
     console.log(await fibClient.search(q));
   };
 
+  const handleLayout = () => {
+    const dagre = new DagreEngine({
+      graph: {
+        rankdir: "LR",
+        ranker: "longest-path",
+        marginx: 25,
+        marginy: 25,
+      },
+    });
+
+    dagre.redistribute(engine.getModel());
+    engine.repaintCanvas();
+  };
+
   return (
     <div style={{ width: "100%", height: "100%" }}>
       <div className="page-header">
@@ -287,6 +304,7 @@ const App = () => {
           <button onClick={handleSerialize}>Save</button>
           <button onClick={handleLoad}>Load</button>
           <button onClick={handleSolve}>Solve</button>
+          <button onClick={handleLayout}>Auto-layout</button>
         </div>
         <AuthHeader user={user} setUser={setUser} />
       </div>
