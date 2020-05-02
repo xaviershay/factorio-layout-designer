@@ -102,7 +102,6 @@ export class ProductionPortModel extends DefaultPortModel {
   }
 
   createLinkModel(factory: ProductionLinkModel) {
-    console.log("creating link model");
     return new ProductionLinkModel();
   }
 

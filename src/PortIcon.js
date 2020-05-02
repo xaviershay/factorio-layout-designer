@@ -59,6 +59,7 @@ const PortIcon = ({
           switch (e.function) {
             case "showSelector":
               showModal();
+              break;
             default:
               break;
           }
