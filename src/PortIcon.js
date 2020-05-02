@@ -1,6 +1,6 @@
 // @flow
 
-import React from "react";
+import React, { useEffect } from "react";
 import { PortWidget } from "@projectstorm/react-diagrams";
 import ReactModal from "react-modal";
 import { useModal } from "react-modal-hook";
@@ -46,15 +46,23 @@ const PortIcon = ({
       </div>
     </ReactModal>
   ));
+  useEffect(
+    () =>
+      port.registerListener({
+        eventDidFire: (e) => {
+          switch (e.function) {
+            case "showSelector":
+              showModal();
+            default:
+              break;
+          }
+        },
+      }).deregister,
+    [port, showModal]
+  );
 
   return (
-    <div
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showModal();
-      }}
-    >
+    <div>
       <PortWidget engine={engine} port={port}>
         <img
           draggable={false}

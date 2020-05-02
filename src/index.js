@@ -446,7 +446,14 @@ const App = () => {
             event.preventDefault();
           }}
         >
-          <CanvasWidget className="diagram-container" engine={engine} />
+          <CanvasWidget
+            className="diagram-container"
+            engine={engine}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
         </div>
       </div>
     </div>
