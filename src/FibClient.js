@@ -12,7 +12,7 @@ export default class FibClient {
       }).then((x) => x.json());
     }
 
-    return (await this.tokenRequest).authorizationToken
+    return (await this.tokenRequest).authorizationToken;
   }
 
   async search(q) {

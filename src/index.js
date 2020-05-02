@@ -1,6 +1,6 @@
 // @flow
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import * as ReactDOM from "react-dom";
 import "./index.css";
 import _ from "lodash";
@@ -11,13 +11,11 @@ import {
   ProductionNodeFactory,
   ProductionPortFactory,
 } from "./ProductionNode";
-import AuthHeader, { type User } from './AuthHeader'
+import AuthHeader, { useAuthState } from "./AuthHeader";
 import { ModalProvider } from "react-modal-hook";
 import ReactModal from "react-modal";
 import DiagramState from "./DiagramState";
 import ProductionSolver from "./ProductionSolver";
-import { useModal } from "react-modal-hook";
-import { StyledFirebaseAuth } from "react-firebaseui";
 import * as firebase from "firebase/app";
 import FibClient from "./FibClient";
 import "firebase/analytics";
@@ -41,17 +39,8 @@ firebase.initializeApp(firebaseConfig);
 firebase.analytics();
 
 // Configure FirebaseUI.
-const uiConfig = {
-  signInFlow: "popup",
-  signInOptions: [firebase.auth.GoogleAuthProvider.PROVIDER_ID],
-  callbacks: {
-    // Avoid redirects after sign-in.
-    signInSuccessWithAuthResult: () => false,
-  },
-};
-
 const fibClient = new FibClient();
-window.fibClient = fibClient
+window.fibClient = fibClient;
 
 const engine = createEngine();
 engine.maxNumberPointsPerLink = 0;
@@ -188,46 +177,12 @@ engine.setModel(model);
 // Estimates, used for centering nodes when dropping from tray.
 const nodeWidth = 180;
 const nodeHeight = 120;
-const SIGNED_OUT = "SIGNED_OUT"
-
-const USER_LOADING = {type: 'loading'}
-const USER_SIGNED_OUT = {type: 'signed_out'}
 
 const App = () => {
-  // null means we are still loading auth state
-  const [user, setUser] = useState<User>(USER_LOADING);
-
-  const [showLoginModal, hideLoginModal] = useModal(() => (
-    <ReactModal
-      isOpen
-      className="login-modal"
-      overlayClassName="login-modal-overlay"
-      onRequestClose={hideLoginModal}
-    >
-      <p>Signing in allows you to save and share your designs.</p>
-      <StyledFirebaseAuth uiConfig={uiConfig} firebaseAuth={firebase.auth()} />
-    </ReactModal>
-  ));
-
-  useEffect(
-    () =>
-      firebase.auth().onAuthStateChanged((user) => {
-        // This will always be called at least once
-        if (user == null) {
-          setUser(USER_SIGNED_OUT)
-        } else {
-          setUser({...user, type: 'signed_in'});
-        }
-
-        if (user) {
-          hideLoginModal();
-        }
-      }),
-    [hideLoginModal]
-  );
+  const [user, setUser] = useAuthState();
 
   const handleSerialize = async () => {
-    if (user.type !== 'signed_in') {
+    if (user.type !== "signed_in") {
       return;
     }
     const ref = firebase
@@ -242,7 +197,7 @@ const App = () => {
   };
 
   const handleLoad = async () => {
-    if (user.type !== 'signed_in') {
+    if (user.type !== "signed_in") {
       return;
     }
     const ref = firebase
@@ -322,7 +277,7 @@ const App = () => {
     const q = e.target.value;
 
     console.log(q);
-    console.log(await fibClient.search(q))
+    console.log(await fibClient.search(q));
   };
 
   return (
@@ -333,7 +288,7 @@ const App = () => {
           <button onClick={handleLoad}>Load</button>
           <button onClick={handleSolve}>Solve</button>
         </div>
-        <AuthHeader user={user} handleSignIn={showLoginModal} />
+        <AuthHeader user={user} setUser={setUser} />
       </div>
       <div className="body">
         <div className="tray">
