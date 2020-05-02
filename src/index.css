@@ -6,12 +6,12 @@
 html, body, #application{
 	height: 100%;
 	overflow: hidden;
+  font-family: sans-serif;
 }
 
 .production-node {
   background-color: rgb(199, 214, 219);
   border-radius: 5px;
-  font-family: sans-serif;
   color: white;
   border: solid 2px black;
   overflow: visible;
@@ -288,4 +288,22 @@ html, body, #application{
   left: 0;
   right: 0;
   bottom: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5em;
+  background-color: #111111;
+  color: white;
+}
+
+.page-header button {
+  margin-left: 0.5em;
+  padding: 0.5em;
+  background-color: #333333;
+  border: solid 2px black;
+  border-radius: 5px;
+  cursor: pointer;
+  color: white;
 }

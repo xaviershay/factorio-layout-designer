@@ -311,22 +311,26 @@ const App = () => {
     const q = e.target.value;
 
     console.log(q);
-    //console.log(await fibClient.search("oil"))
+    console.log(await fibClient.search(q))
   };
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
-      <div>
-        <button onClick={handleSerialize}>Save</button>
-        <button onClick={handleLoad}>Load</button>
-        <button onClick={handleSolve}>Solve</button>
-        {user == null && <button onClick={showLoginModal}>Sign in</button>}
-        {user != null && (
-          <div style={{ display: "inline" }}>
-            {user.email}{" "}
-            <button onClick={() => firebase.auth().signOut()}>Sign out</button>
-          </div>
-        )}
+      <div className="page-header">
+        <div>
+          <button onClick={handleSerialize}>Save</button>
+          <button onClick={handleLoad}>Load</button>
+          <button onClick={handleSolve}>Solve</button>
+        </div>
+        <div>
+          {user == null && <button onClick={showLoginModal}>Sign in</button>}
+          {user != null && (
+            <div style={{ display: "inline" }}>
+              {user.email}{" "}
+              <button onClick={() => firebase.auth().signOut()}>Sign out</button>
+            </div>
+          )}
+        </div>
       </div>
       <div className="body">
         <div className="tray">
