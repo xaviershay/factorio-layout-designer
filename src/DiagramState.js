@@ -25,22 +25,12 @@ export default class DiagramState extends State<DiagramEngine> {
     this.dragNewLink.config.allowLooseLinks = false;
     this.dragItems = new DragDiagramItemsState();
 
-    // LMB down, non element = selection box
-
-    // LMB down, element = select
-
-    // LMB down, port = dragNewLink, or change icon if no movement
-
-    // Shift+LMB down = pan
-    // MMD = pan
-
-    // determine what was clicked on
     this.registerAction(
       new Action({
         type: InputType.MOUSE_DOWN,
         fire: (event) => {
-          // Only respond to left click
-          if (event.event.button !== 0) {
+          // Ignore right clicks
+          if (event.event.button === 2) {
             return;
           }
           const element = this.engine
