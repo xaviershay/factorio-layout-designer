@@ -24,6 +24,8 @@ import FibClient from "./FibClient";
 import "firebase/analytics";
 import "firebase/storage";
 import "firebase/auth";
+import lscache from "lscache";
+import IconMap from "./IconMap";
 
 import { ProductionPortModel, ProductionLinkModel } from "./ProductionNode";
 
@@ -181,19 +183,92 @@ engine.setModel(model);
 const nodeWidth = 180;
 const nodeHeight = 120;
 
+class IconManager {
+  constructor() {
+    this._needLoad = new Map();
+    this._icons = new Map();
+  }
+
+  get needLoad() {
+    return this._needLoad;
+  }
+
+  addRecipe(name) {
+    this.add("recipe", name);
+  }
+
+  addItem(name) {
+    this.add("item", name);
+  }
+
+  add(type, name) {
+    const cacheKey = ["fib", "icon", type, name].join(":");
+    const content = lscache.get(cacheKey);
+
+    if (content === null) {
+      this._needLoad.set(cacheKey, { type, name });
+    } else {
+      this._icons.set(cacheKey, content);
+    }
+  }
+
+  get iconMap() {
+    return this._icons;
+  }
+
+  setContent(type, name, content) {
+    const cacheKey = ["fib", "icon", type, name].join(":");
+    lscache.set(cacheKey, content, 60);
+    this._icons.set(cacheKey, content);
+    this._needLoad.delete(cacheKey);
+  }
+}
+
+let iconManager = new IconManager();
+window.iconManager = iconManager;
+
 const App = () => {
   const [user, setUser] = useAuthState();
   const [recipes, setRecipes] = useState([]);
   const [q, setQ] = useState<string>(null);
+  const [iconMap, setIconMap] = useState(new Map());
 
-  window.recipes = recipes
+  window.recipes = recipes;
 
   useEffect(() => {
     (async () => {
-      console.log("fetching recipes")
-      setRecipes(await fibClient.allRecipes())
-    })()
-  }, [])
+      let loadedRecipes = lscache.get("fib:recipes");
+      if (loadedRecipes == null) {
+        loadedRecipes = await fibClient.allRecipes();
+        lscache.set("fib:recipes", loadedRecipes, 60);
+      }
+      setRecipes(loadedRecipes);
+
+      loadedRecipes.forEach((recipe) => {
+        iconManager.addRecipe(recipe.name);
+        recipe.ingredients.concat(recipe.products).forEach((item) => {
+          iconManager.add(item.type, item.name);
+        });
+      });
+
+      setIconMap(iconManager.iconMap);
+
+      const newIcons = await fibClient.icons([
+        ...iconManager.needLoad.values(),
+      ]);
+      newIcons.forEach((icon) => {
+        iconManager.setContent(icon.type, icon.name, icon.content);
+      });
+
+      // Populate cache with any items we didn't receive a response for so we
+      // don't keep asking.
+      Array.from(iconManager.needLoad.values()).forEach((icon) => {
+        iconManager.setContent(icon.type, icon.name, "");
+      });
+
+      setIconMap(iconManager.iconMap);
+    })();
+  }, []);
 
   const handleSerialize = async () => {
     if (user.type !== "signed_in") {
@@ -290,7 +365,7 @@ const App = () => {
   const handleRecipeSearch = async (e) => {
     const q = e.target.value;
 
-    setQ(q)
+    setQ(q);
   };
 
   const handleLayout = () => {
@@ -307,147 +382,166 @@ const App = () => {
     engine.repaintCanvas();
   };
 
-  const filteredRecipes = q ? recipes.filter(r => r.label.toLowerCase().indexOf(q.toLowerCase()) >= 0) : recipes
+  const filteredRecipes = q
+    ? recipes.filter((r) => r.label.toLowerCase().indexOf(q.toLowerCase()) >= 0)
+    : recipes;
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
-      <div className="page-header">
-        <div>
-          <button onClick={handleSerialize}>Save</button>
-          <button onClick={handleLoad}>Load</button>
-          <button onClick={handleSolve}>Solve</button>
-          <button onClick={handleLayout}>Auto-layout</button>
+    <IconMap.Provider value={iconMap}>
+      <div style={{ width: "100%", height: "100%" }}>
+        <div className="page-header">
+          <div>
+            <button onClick={handleSerialize}>Save</button>
+            <button onClick={handleLoad}>Load</button>
+            <button onClick={handleSolve}>Solve</button>
+            <button onClick={handleLayout}>Auto-layout</button>
+          </div>
+          <AuthHeader user={user} setUser={setUser} />
         </div>
-        <AuthHeader user={user} setUser={setUser} />
-      </div>
-      <div className="body">
-        <div className="tray">
-          <div className="search">
-            <input placeholder="Search" onChange={handleRecipeSearch} />
-          </div>
-          <div
-            className="tray-item production-node"
-            draggable={true}
-            onDragStart={(event) => {
-              event.dataTransfer.setData(
-                "storm-diagram-node",
-                JSON.stringify({
-                  name: "Production Target",
-                  type: "target-node",
-                })
-              );
-            }}
-          >
-            <div className="header">Production Target</div>
-          </div>
+        <div className="body">
+          <div className="tray">
+            <div className="search">
+              <input placeholder="Search" onChange={handleRecipeSearch} />
+            </div>
+            <div
+              className="tray-item production-node"
+              draggable={true}
+              onDragStart={(event) => {
+                event.dataTransfer.setData(
+                  "storm-diagram-node",
+                  JSON.stringify({
+                    name: "Production Target",
+                    type: "target-node",
+                  })
+                );
+              }}
+            >
+              <div className="header">Production Target</div>
+            </div>
 
+            <div
+              className="tray-item production-node"
+              draggable={true}
+              onDragStart={(event) => {
+                event.dataTransfer.setData(
+                  "storm-diagram-node",
+                  JSON.stringify({
+                    name: "Assembler 3",
+                    type: "assembler-node",
+                    craftingSpeed: 1.25,
+                  })
+                );
+              }}
+            >
+              <div className="header">Assembler 3 (Blank)</div>
+            </div>
+            {filteredRecipes.map((recipe) => (
+              <div
+                key={recipe.name}
+                className="tray-item production-node"
+                draggable={true}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(
+                    "storm-diagram-node",
+                    JSON.stringify({
+                      name: recipe.name,
+                      type: "assembler-node",
+                      duration: recipe.craftingTime,
+                      craftingSpeed: 1.25,
+                      inputs: recipe.ingredients.map((item) => {
+                        return {
+                          name: item.name,
+                          amount: item.amount,
+                        };
+                      }),
+                      outputs: recipe.products.map((item) => {
+                        return {
+                          name: item.name,
+                          amount: item.amount,
+                        };
+                      }),
+                    })
+                  );
+                }}
+              >
+                <div className="header">
+                  <span>{recipe.label}</span>
+                  <img
+                    width="20"
+                    height="20"
+                    src={
+                      "data:image/png;base64," +
+                      iconMap.get(`fib:icon:recipe:${recipe.name}`)
+                    }
+                    alt={recipe.label}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
           <div
-            className="tray-item production-node"
-            draggable={true}
-            onDragStart={(event) => {
-              event.dataTransfer.setData(
-                "storm-diagram-node",
-                JSON.stringify({
-                  name: "Assembler 3",
-                  type: "assembler-node",
-                  craftingSpeed: 1.25,
-                })
-              );
+            className="canvas"
+            onDrop={(event) => {
+              let data = null;
+              try {
+                data = JSON.parse(
+                  event.dataTransfer.getData("storm-diagram-node")
+                );
+              } catch (e) {
+                // Not an event we know how to handle
+                return null;
+              }
+              let node;
+              if (data.type === "target-node") {
+                node = new ProductionNode({
+                  name: null,
+                  duration: 1,
+                  craftingSpeed: 1,
+                  productivityBonus: 0,
+                  targetRate: 10,
+                  targetRateUnits: "s",
+                });
+                node.addInput();
+              } else {
+                node = new ProductionNode({
+                  name: data.name,
+                  duration: data.duration || 1,
+                  craftingSpeed: data.craftingSpeed || 1,
+                  productivityBonus: 0,
+                  targetRate: null,
+                });
+                const inputs = data.inputs || [];
+                inputs.forEach((item) => {
+                  node.addInput(item.name, item.amount);
+                });
+                const outputs = data.outputs || [];
+                outputs.forEach((item) => {
+                  node.addOutput(item.name, item.amount);
+                });
+              }
+              const point = engine.getRelativeMousePoint(event);
+              point.x = point.x - nodeWidth / 2;
+              point.y = point.y - nodeHeight / 2;
+              node.setPosition(point);
+              engine.getModel().addNode(node);
+              engine.repaintCanvas();
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
             }}
           >
-            <div className="header">Assembler 3 (Blank)</div>
+            <CanvasWidget
+              className="diagram-container"
+              engine={engine}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            />
           </div>
-    {filteredRecipes.map(recipe =>
-          <div
-            key={recipe.name}
-            className="tray-item production-node"
-            draggable={true}
-            onDragStart={(event) => {
-              event.dataTransfer.setData(
-                "storm-diagram-node",
-                JSON.stringify({
-                  name: recipe.label,
-                  type: "assembler-node",
-                  duration: recipe.craftingTime,
-                  craftingSpeed: 1.25,
-                  inputs: recipe.ingredients.map(item => { return {
-                    name: item.name,
-                    amount: item.amount,
-                  }}),
-                  outputs: recipe.products.map(item => { return {
-                    name: item.name,
-                    amount: item.amount,
-                  }}),
-                })
-              );
-            }}
-          >
-            <div className="header">{recipe.label}</div>
-          </div>
-    )}
-        </div>
-        <div
-          className="canvas"
-          onDrop={(event) => {
-            let data = null;
-            try {
-              data = JSON.parse(
-                event.dataTransfer.getData("storm-diagram-node")
-              );
-            } catch (e) {
-              // Not an event we know how to handle
-              return null;
-            }
-            let node;
-            if (data.type === "target-node") {
-              node = new ProductionNode({
-                name: null,
-                duration: 1,
-                craftingSpeed: 1,
-                productivityBonus: 0,
-                targetRate: 10,
-                targetRateUnits: "s",
-              });
-              node.addInput();
-            } else {
-              node = new ProductionNode({
-                name: data.name,
-                duration: data.duration || 1,
-                craftingSpeed: data.craftingSpeed || 1,
-                productivityBonus: 0,
-                targetRate: null,
-              })
-              const inputs = data.inputs || []
-              inputs.forEach(item => {
-                node.addInput(item.name, item.amount)
-              })
-              const outputs = data.outputs || []
-              outputs.forEach(item => {
-                node.addOutput(item.name, item.amount)
-              })
-            }
-            const point = engine.getRelativeMousePoint(event);
-            point.x = point.x - nodeWidth / 2;
-            point.y = point.y - nodeHeight / 2;
-            node.setPosition(point);
-            engine.getModel().addNode(node);
-            engine.repaintCanvas();
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-          }}
-        >
-          <CanvasWidget
-            className="diagram-container"
-            engine={engine}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          />
         </div>
       </div>
-    </div>
+    </IconMap.Provider>
   );
 };
 

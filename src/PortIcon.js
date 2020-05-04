@@ -1,15 +1,11 @@
 // @flow
 
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import { PortWidget } from "@projectstorm/react-diagrams";
 import ReactModal from "react-modal";
 import { useModal } from "react-modal-hook";
 import { type ProductionPortModel } from "./ProductionNode";
-
-function imageFor(x) {
-  if (x == null) return "/img/transparent.png";
-  return `/img/icons/${x}.png`;
-}
+import IconMap from "./IconMap";
 
 const PortIcon = ({
   engine,
@@ -21,6 +17,22 @@ const PortIcon = ({
   onChangeIcon: (string) => void,
 }) => {
   const icon = port.options.icon;
+  const iconMap = useContext(IconMap);
+
+  function imageFor(x) {
+    if (x == null) return "/img/transparent.png";
+
+    const itemCacheKey = `fib:icon:item:${x}`;
+    const fluidCacheKey = `fib:icon:fluid:${x}`;
+    const content = iconMap.get(itemCacheKey) || iconMap.get(fluidCacheKey);
+
+    if (content) {
+      return "data:image/png;base64," + content;
+    } else {
+      return "/img/transparent.png";
+    }
+  }
+
   const [showModal, hideModal] = useModal(() => (
     <ReactModal
       isOpen
