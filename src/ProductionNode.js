@@ -208,27 +208,27 @@ export class ProductionNode extends DefaultNodeModel {
     };
   }
 
-  addOutput() {
+  addOutput(icon = null, count = 1) {
     const portName = "out-" + (this.outputPorts.length + 1);
     this.addPort(
       new ProductionPortModel({
         in: false,
         name: portName,
-        icon: null,
-        count: 1,
+        icon: icon,
+        count: count,
       })
     );
     return portName;
   }
 
-  addInput() {
+  addInput(icon = null, count = 1) {
     const portName = "in-" + (this.inputPorts.length + 1);
     this.addPort(
       new ProductionPortModel({
         in: true,
         name: portName,
-        icon: null,
-        count: 1,
+        icon: icon,
+        count: count,
       })
     );
     return portName;

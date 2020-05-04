@@ -15,7 +15,44 @@ export default class FibClient {
     return (await this.tokenRequest).authorizationToken;
   }
 
+  async bearerToken() {
+    return `Bearer ${await this.authToken()}`
+  }
+
+
   async search(q) {
-    return FibApi.SearchApi().searchQuery(await this.authToken(), { query: q });
+    return FibApi.SearchApi().searchQuery(await this.bearerToken(), { query: q });
+  }
+
+  async allRecipes() {
+    const pageSize = 300;
+
+    let results = []
+    let index = 0;
+
+    while (true) {
+      if (index >= 10000) {
+        throw new Error("More than 10000 recipes not supported, something probably broken.")
+      }
+      const response = await FibApi.RecipesApi().recipeList(await this.bearerToken(), {
+        numberOfResults: pageSize,
+        indexOfFirstResult: index 
+      })
+
+      const recipes = response.recipes
+
+      if (recipes.length > 0) {
+        results = results.concat(response.recipes)
+        index += pageSize
+      } else {
+        break
+      }
+    }
+
+    return results
+  }
+
+  rawApi() {
+    return FibApi
   }
 }

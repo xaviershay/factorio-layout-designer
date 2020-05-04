@@ -33,7 +33,7 @@
     "eject": "react-scripts eject",
     "precommit": "lint-staged",
     "fmt": "prettier --write 'src/**/*.js'",
-    "api": "rm -rf gen/api && openapi-generator generate -i https://raw.githubusercontent.com/factorio-item-browser/api-server/master/api/openapi.yaml --generator-name javascript-flowtyped -o gen/api --config api.json && cd gen/api && yarn"
+    "api": "rm -rf gen/api && openapi-generator generate -i https://raw.githubusercontent.com/factorio-item-browser/api-server/master/api/openapi.yaml --generator-name javascript-flowtyped -o gen/api --config api.json && cd gen/api && yarn && yarn build && cd ../.. && yarn"
   },
   "eslintConfig": {
     "extends": "react-app"

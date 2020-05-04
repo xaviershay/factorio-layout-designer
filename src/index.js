@@ -1,6 +1,6 @@
 // @flow
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import * as ReactDOM from "react-dom";
 import "./index.css";
 import _ from "lodash";
@@ -183,6 +183,17 @@ const nodeHeight = 120;
 
 const App = () => {
   const [user, setUser] = useAuthState();
+  const [recipes, setRecipes] = useState([]);
+  const [q, setQ] = useState<string>(null);
+
+  window.recipes = recipes
+
+  useEffect(() => {
+    (async () => {
+      console.log("fetching recipes")
+      setRecipes(await fibClient.allRecipes())
+    })()
+  }, [])
 
   const handleSerialize = async () => {
     if (user.type !== "signed_in") {
@@ -279,8 +290,7 @@ const App = () => {
   const handleRecipeSearch = async (e) => {
     const q = e.target.value;
 
-    console.log(q);
-    console.log(await fibClient.search(q));
+    setQ(q)
   };
 
   const handleLayout = () => {
@@ -296,6 +306,8 @@ const App = () => {
     dagre.redistribute(engine.getModel());
     engine.repaintCanvas();
   };
+
+  const filteredRecipes = q ? recipes.filter(r => r.label.toLowerCase().indexOf(q.toLowerCase()) >= 0) : recipes
 
   return (
     <div style={{ width: "100%", height: "100%" }}>
@@ -328,38 +340,7 @@ const App = () => {
           >
             <div className="header">Production Target</div>
           </div>
-          <div
-            className="tray-item production-node"
-            draggable={true}
-            onDragStart={(event) => {
-              event.dataTransfer.setData(
-                "storm-diagram-node",
-                JSON.stringify({
-                  name: "Assembler 1",
-                  type: "assembler-node",
-                  craftingSpeed: 0.5,
-                })
-              );
-            }}
-          >
-            <div className="header">Assembler 1 (Blank)</div>
-          </div>
-          <div
-            className="tray-item production-node"
-            draggable={true}
-            onDragStart={(event) => {
-              event.dataTransfer.setData(
-                "storm-diagram-node",
-                JSON.stringify({
-                  name: "Assembler 2",
-                  type: "assembler-node",
-                  craftingSpeed: 0.75,
-                })
-              );
-            }}
-          >
-            <div className="header">Assembler 2 (Blank)</div>
-          </div>
+
           <div
             className="tray-item production-node"
             draggable={true}
@@ -376,30 +357,34 @@ const App = () => {
           >
             <div className="header">Assembler 3 (Blank)</div>
           </div>
-          {/*
-          <div className="tray-item production-node" draggable={true}>
-            <div className="header">
-              Green Circuit
-              <img
-                src={imageFor('green-circuit')}
-                alt="green-circuit"
-                width="20"
-                height="20"
-              />
-            </div>
+    {filteredRecipes.map(recipe =>
+          <div
+            key={recipe.name}
+            className="tray-item production-node"
+            draggable={true}
+            onDragStart={(event) => {
+              event.dataTransfer.setData(
+                "storm-diagram-node",
+                JSON.stringify({
+                  name: recipe.label,
+                  type: "assembler-node",
+                  duration: recipe.craftingTime,
+                  craftingSpeed: 1.25,
+                  inputs: recipe.ingredients.map(item => { return {
+                    name: item.name,
+                    amount: item.amount,
+                  }}),
+                  outputs: recipe.products.map(item => { return {
+                    name: item.name,
+                    amount: item.amount,
+                  }}),
+                })
+              );
+            }}
+          >
+            <div className="header">{recipe.label}</div>
           </div>
-          <div className="tray-item production-node" draggable={true}>
-            <div className="header">
-              Green Circuit
-              <img
-                src={imageFor('green-circuit')}
-                alt="green-circuit"
-                width="20"
-                height="20"
-              />
-            </div>
-          </div>
-          */}
+    )}
         </div>
         <div
           className="canvas"
@@ -427,13 +412,19 @@ const App = () => {
             } else {
               node = new ProductionNode({
                 name: data.name,
-                duration: 1,
+                duration: data.duration || 1,
                 craftingSpeed: data.craftingSpeed || 1,
                 productivityBonus: 0,
                 targetRate: null,
-              });
-              node.addInput();
-              node.addOutput();
+              })
+              const inputs = data.inputs || []
+              inputs.forEach(item => {
+                node.addInput(item.name, item.amount)
+              })
+              const outputs = data.outputs || []
+              outputs.forEach(item => {
+                node.addOutput(item.name, item.amount)
+              })
             }
             const point = engine.getRelativeMousePoint(event);
             point.x = point.x - nodeWidth / 2;
