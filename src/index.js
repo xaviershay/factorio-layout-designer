@@ -235,6 +235,61 @@ const App = () => {
 
   window.recipes = recipes;
 
+  useEffect(
+    () =>
+      engine.registerListener({
+        eventDidFire: (e) => {
+          switch (e.function) {
+            case "nodeForProduct":
+              const candidates = recipes.filter(
+                (x) => x.products.filter((p) => p.name === e.product).length > 0
+              );
+              const data = candidates[0];
+
+              if (data) {
+                console.log(data);
+                const node = new ProductionNode({
+                  name: data.label,
+                  duration: data.craftingTime || 1,
+                  craftingSpeed: data.craftingSpeed || 1,
+                  productivityBonus: 0,
+                  targetRate: null,
+                });
+                const inputs = data.ingredients;
+                inputs.forEach((item) => {
+                  node.addInput(item.name, item.amount);
+                });
+                const outputs = data.products;
+                outputs.forEach((item) => {
+                  node.addOutput(item.name, item.amount);
+                });
+                let point = e.location;
+                point.x = point.x - 170;
+                point.y = point.y - 40;
+                node.setPosition(point);
+                let targetPort = node.outputPorts.find(
+                  (x) => x.icon === e.product
+                );
+
+                if (targetPort) {
+                  engine.getModel().addNode(node);
+                  e.link.setTargetPort(targetPort);
+                } else {
+                  e.link.remove();
+                }
+              } else {
+                e.link.remove();
+              }
+              engine.repaintCanvas();
+              break;
+            default:
+              break;
+          }
+        },
+      }).deregister,
+    [recipes]
+  );
+
   useEffect(() => {
     (async () => {
       let loadedRecipes = lscache.get("fib:recipes");

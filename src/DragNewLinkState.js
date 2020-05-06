@@ -90,8 +90,24 @@ export default class DragNewLinkState extends AbstractDisplacementState<DiagramE
             this.isNearbySourcePort(event.event) ||
             !this.config.allowLooseLinks
           ) {
-            this.link.remove();
-            this.engine.repaintCanvas();
+            window.link = this.link;
+            const product = this.link.sourcePort.icon;
+
+            if (!product || !this.link.sourcePort.isInput) {
+              this.link.remove();
+              this.engine.repaintCanvas();
+              return;
+            }
+
+            const point = this.engine.getRelativeMousePoint(event.event);
+            this.engine.fireEvent(
+              {
+                location: point,
+                product: product,
+                link: this.link,
+              },
+              "nodeForProduct"
+            );
           }
         },
       })
